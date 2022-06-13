@@ -111,7 +111,7 @@ import java.util.concurrent.ThreadLocalRandom;
  *
  *  @since 2.1.112
  */
-public class SpamFilter extends BasePageFilter {
+public class AkismetSpamFilter extends BasePageFilter implements SpamFilter {
 	
     private static final String ATTR_SPAMFILTER_SCORE = "spamfilter.score";
     private static final String REASON_REGEXP = "Regexp";
@@ -197,7 +197,7 @@ public class SpamFilter extends BasePageFilter {
     private Date m_lastRebuild = new Date( 0L );
 
     private static final Logger c_spamlog = LogManager.getLogger( "SpamLog" );
-    private static final Logger log = LogManager.getLogger( SpamFilter.class );
+    private static final Logger log = LogManager.getLogger( AkismetSpamFilter.class );
 
     private final Vector<Host>    m_temporaryBanList = new Vector<>();
 
