@@ -18,7 +18,29 @@
  */
 package org.apache.wiki.filters;
 
-import net.sf.akismet.Akismet;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Properties;
+import java.util.Random;
+import java.util.StringTokenizer;
+import java.util.Vector;
+import java.util.concurrent.ThreadLocalRandom;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.jsp.PageContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.logging.log4j.LogManager;
@@ -55,28 +77,6 @@ import org.suigeneris.jrcs.diff.delta.ChangeDelta;
 import org.suigeneris.jrcs.diff.delta.DeleteDelta;
 import org.suigeneris.jrcs.diff.delta.Delta;
 import org.suigeneris.jrcs.diff.myers.MyersDiff;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.jsp.PageContext;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Properties;
-import java.util.Random;
-import java.util.StringTokenizer;
-import java.util.Vector;
-import java.util.concurrent.ThreadLocalRandom;
 
 
 /**
@@ -936,7 +936,7 @@ public class AkismetSpamFilter extends BasePageFilter implements SpamFilter {
      *  @since 2.6
      *  @return A hash value for this page and session
      */
-    public static String getSpamHash( final Page page, final HttpServletRequest request ) {
+    public String getSpamHash( final Page page, final HttpServletRequest request ) {
         long lastModified = 0;
 
         if( page.getLastModified() != null ) {
@@ -955,7 +955,11 @@ public class AkismetSpamFilter extends BasePageFilter implements SpamFilter {
      *  @return The name to be used in the hash field
      *  @since  2.6
      */
-    public static String getHashFieldName( final HttpServletRequest request ) {
+    public @Nonnull String getHashFieldName( final HttpServletRequest request ) {
+    	return getHashFieldName_(request);
+    }
+    
+    public static @Nonnull String getHashFieldName_( final HttpServletRequest request ) {
         String hash = null;
 
         if( request.getSession() != null ) {
@@ -990,7 +994,7 @@ public class AkismetSpamFilter extends BasePageFilter implements SpamFilter {
      *  @throws IOException If redirection fails
      *  @since 2.6
      */
-    public static boolean checkHash( final Context context, final PageContext pageContext ) throws IOException {
+    public boolean checkHash( final Context context, final PageContext pageContext ) throws IOException {
         final String hashName = getHashFieldName( (HttpServletRequest)pageContext.getRequest() );
         if( pageContext.getRequest().getParameter(hashName) == null ) {
             if( pageContext.getAttribute( hashName ) == null ) {
@@ -1006,6 +1010,22 @@ public class AkismetSpamFilter extends BasePageFilter implements SpamFilter {
         return true;
     }
 
+	public boolean checkHash(final Context context, final HttpServletRequest request)
+	{
+		final String hashName = getHashFieldName(request);
+		if (request.getParameter(hashName) == null)  //TODO-PP we don't need pageContext.getAttribute(..), right??
+		{
+			final Change change = getChange(context, EditorManager.getEditedText(request));
+			log(context, REJECT, "MissingHash", change.m_change);
+			
+			return false;
+		}
+		else
+		{
+			return true;
+		}
+	}
+    
     /**
      * This helper method adds all the input fields to your editor that the SpamFilter requires
      * to check for spam.  This <i>must</i> be in your editor form if you intend to use the SpamFilter.
